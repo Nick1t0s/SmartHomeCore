@@ -2,8 +2,7 @@ import sqlite3
 
 
 def createJsonCommands(request):
-    args = json.loads(request.json)
-    devicesDFSorted = devicesDF[devicesDF["id"] == args["id"]]
+    devicesDFSorted = devicesDF[devicesDF["ip"] == request.remote_addr]
     if devicesDFSorted.shape[0]==0:
         commandsToExecute = ""
     else:
@@ -22,7 +21,6 @@ from flask import request
 from flask import Flask
 import json
 import datetime
-import pandas as pd
 import logging
 import os
 import files
@@ -45,8 +43,9 @@ rootsCredentials=files.readCredentials("credentials\\roots.txt")
 @app.route("/api/device/getCM/", methods=['POST'])
 def deviceRequest():  # Функция ответа на запрос получения команд
     print(json.loads(request.json))
-    if security.checkPassword(json.loads(request.json),devicesCredentials):
-        controlDevices.writeDevice(devicesDF,json.loads(request.json))
+
+    if security.checkPassword(request, json.loads(request.json),devicesCredentials):
+        controlDevices.writeDevice(request,devicesDF,json.loads(request.json))
         answer=createJsonCommands(request)
     else:
         answer=json.dumps({"hello":"hello"})
@@ -62,7 +61,7 @@ def deviceRequest():  # Функция ответа на запрос получ
 
 @app.route("/api/device/sendFile/",methods=["POST"])
 def writeData():  # Прием файла
-    if security.checkPassword(request.form.to_dict(), devicesCredentials):
+    if security.checkPassword(request, json.loads(request.json),devicesCredentials):
         return toolsRequest.downloadFile(request)
     else:
         return json.dumps({"hello":"hello"})
@@ -71,13 +70,12 @@ def writeData():  # Прием файла
 def getData():  # Отправка файла
     print(json.loads(request.json))
     print(devicesCredentials)
-    if security.checkPassword(json.loads(request.json), devicesCredentials):
+    if security.checkPassword(request, json.loads(request.json),devicesCredentials):
         return toolsRequest.getFile(json.loads(request.json))
     else:
         return {"hello":"hello"}
 
-@app.route("/api/device/getFile/", )
-
+# @app.route("/api/device/getFile/", )
 # @app.route("/api/device/SQL/",methods=["POST"])
 # def SQL():  # Выполнение SQL запроса
 #     return toolsRequest.useSQL(request,devicesCredentials)
@@ -85,7 +83,7 @@ def getData():  # Отправка файла
 # --------------- Пользователи --------------
 @app.route("/api/user/getDevices/",methods=["POST"])
 def getDevices():  # Получить список устройств
-    if security.checkPassword(json.loads(request.json),usersCredentials):
+    if security.checkPassword(request,json.loads(request.json),usersCredentials):
         answer = devicesDF.to_dict()
         for i in answer:
             answer[i] = list(answer[i].values())
@@ -94,9 +92,9 @@ def getDevices():  # Получить список устройств
     return json.dumps(answer)
 
 @app.route("/api/user/writeCMD/", methods=["POST"])
-def writeCMD():  # Дать команду устройству
-    if security.checkPassword(json.loads(request.json),usersCredentials):
-        answer = controlDevices.writeCommand(devicesDF, json.loads(request.json))
+def writeCMD():  # Дать команду устр-ойству
+    if security.checkPassword(request,json.loads(request.json),usersCredentials):
+        answer = controlDevices.writeCommand(request, devicesDF, json.loads(request.json))
     else:
         answer = {"hello":"hello"}
     return json.dumps(answer)

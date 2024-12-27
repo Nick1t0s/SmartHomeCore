@@ -1,4 +1,4 @@
 import json
-def checkPassword(dic,credentials):
-    if dic.get("password","1") == credentials.get(dic.get("id"),"2"): return True
+def checkPassword(request, dic,credentials):
+    if dic.get("password","1") == credentials.get(request.remote_addr,"2"): return True
     return False
